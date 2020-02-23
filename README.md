@@ -1,4 +1,4 @@
-# XiaomiTokenFinder
+# Xiaomi Token Finder
 
 Requiere iTunes installed<BR>
 Usage : <BR>
