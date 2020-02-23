@@ -21,8 +21,6 @@ public class TokenFinder
 	{
 		File vBackup;
 
-		getLastBackup();
-
 		if (args.length > 0)
 		{
 			vBackup = new File(args[0]);
