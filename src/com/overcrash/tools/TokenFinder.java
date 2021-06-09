@@ -6,7 +6,9 @@ import java.sql.DriverManager;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.Comparator;
 
 import javax.crypto.Cipher;
@@ -31,9 +33,15 @@ public class TokenFinder
 
 		String miHomeSqliteFile = getMiHomeSqliteDBFile(vBackup);
 
-		String vZtoken = getZtoken(miHomeSqliteFile);
+		Collection<Token> vVacuums = getZtokens(miHomeSqliteFile);
 
-		System.out.println("Token : " + DecryptZtoken(vZtoken));
+		for (Token vaccum : vVacuums) {
+			System.out.println("\n"+vaccum.vZname+" :\n"
+					+ "Token : " + DecryptZtoken(vaccum.getvZtoken())+"\n"
+					+ "Local IP : "+vaccum.getvZlocalIp()+"\n"
+					+ "MAC : "+ vaccum.getvZmac()+"\n"
+					+ "Model : "+vaccum.getvZmodel());
+		}
 
 	}
 
@@ -71,6 +79,7 @@ public class TokenFinder
 					// read the result set
 					String fileID = rs.getString(1);
 					vMiHomeSqliteFile = backupPath.getAbsolutePath() + "\\" + fileID.substring(0, 2) + "\\" + fileID;
+					System.out.println(vMiHomeSqliteFile);
 				} else
 				{
 					System.exit(-1);
@@ -94,9 +103,10 @@ public class TokenFinder
 
 	}
 
-	public static String getZtoken(String aMiHomeSqliteFile)
+	public static Collection<Token> getZtokens(String aMiHomeSqliteFile)
 	{
-		String vZtoken = "";
+		Collection<Token> tokens = new ArrayList<Token>();
+		
 		if (new File(aMiHomeSqliteFile).exists())
 		{
 
@@ -107,15 +117,19 @@ public class TokenFinder
 				Statement statementMihomeSqlite = connectionMihomeSqlite.createStatement();
 				statementMihomeSqlite.setQueryTimeout(30); // set timeout to 30 sec.
 
-				ResultSet rsMihomeSqlite = statementMihomeSqlite.executeQuery("select ZTOKEN from ZDEVICE where ZMODEL like '%vacuum%'");
-				if (rsMihomeSqlite.next())
+				ResultSet rsMihomeSqlite = statementMihomeSqlite.executeQuery("select ZTOKEN, ZLOCALIP, ZMAC, ZMODEL, ZNAME from ZDEVICE where ZMODEL like '%vacuum%'");
+
+				while (rsMihomeSqlite.next())
 				{
-					// read the result set
-					vZtoken = rsMihomeSqlite.getString(1);
-				} else
-				{
-					System.exit(-1);
+					Token token = new Token();
+					token.setvZtoken(rsMihomeSqlite.getString("ZTOKEN"));
+					token.setvZlocalIp(rsMihomeSqlite.getString("ZLOCALIP"));
+					token.setvZmac(rsMihomeSqlite.getString("ZMAC"));
+					token.setvZmodel(rsMihomeSqlite.getString("ZMODEL"));
+					token.setvZname(rsMihomeSqlite.getString("ZNAME"));
+					tokens.add(token);
 				}
+				
 				statementMihomeSqlite.close();
 				rsMihomeSqlite.close();
 				connectionMihomeSqlite.close();
@@ -124,13 +138,13 @@ public class TokenFinder
 				e.printStackTrace();
 			}
 
-			System.out.println("Encrypted token : " + vZtoken);
+			System.out.println("Encrypted token : " + tokens);
 		} else
 		{
 			System.out.println("Unable to find valid Xiaomi Home App sqlite DB at " + aMiHomeSqliteFile);
 			System.exit(-1);
 		}
-		return vZtoken;
+		return tokens;
 	}
 
 	public static String DecryptZtoken(String aZtoken)
